@@ -22,3 +22,8 @@ Addtional: we can use torins mediapipe to check intersection with objects.
 
 # todo
 1. move objs to config
+
+
+# reminders
+# native cam 0
+# obs cam 1
