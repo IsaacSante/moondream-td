@@ -5,6 +5,7 @@ from utils.percepts import Percepts
 import cv2
 import time
 
+
 model = AutoModelForCausalLM.from_pretrained(
     "vikhyatk/moondream2",
     revision="2025-04-14",
@@ -21,6 +22,9 @@ cap = cv2.VideoCapture(cap_num )
 if not cap.isOpened():
     raise RuntimeError("Cannot open webcam")
 
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 360)
+
 try:
     while True:
         start = time.perf_counter()
@@ -29,7 +33,6 @@ try:
         if not ok:
             continue
 
-        # Convert BGR → RGB → PIL
         frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
         pil_img   = Image.fromarray(frame_rgb)
 
