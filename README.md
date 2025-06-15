@@ -1,6 +1,8 @@
 # moondream-td
 realtime obj detection with no training using moondream and touchdesigner.
+
 runs with td, moondream station and td.
+
 windows not supported yet.
 
 1. install moondream station for mac os.
