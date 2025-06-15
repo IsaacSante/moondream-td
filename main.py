@@ -12,7 +12,7 @@ model = AutoModelForCausalLM.from_pretrained(
     device_map={"": "mps"},
 )
 
-objects_of_interest = ["brown elephant", "yellow head doll", "pigeon"]
+objects_of_interest = ["elephant", "corn head doll", "pigeon"]
 prompt   = Prompt(objects_of_interest).text
 percepts = Percepts(objects_of_interest)
 
