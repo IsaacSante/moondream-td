@@ -1,7 +1,7 @@
 class Prompt:
-    _start = "There is an"
-    _stop = "in this image."
-    _instruction = "Which one is the hand grabbing? Return only the noun."
+    _start = "If a person is holding one of these toys,"
+    _stop = " return the toy name."
+    _instruction = "Else return none."
 
     def __init__(self, objects_of_interest: list[str]) -> None:
         if not objects_of_interest:
