@@ -1,5 +1,6 @@
 from transformers import AutoModelForCausalLM
 from PIL import Image
+from utils.prompt import Prompt
 
 model = AutoModelForCausalLM.from_pretrained(
     "vikhyatk/moondream2",
@@ -9,5 +10,7 @@ model = AutoModelForCausalLM.from_pretrained(
 
 image = Image.open("test.jpg")
 
-result = model.caption(image, length="short")["caption"]
-print(result)
+objects_of_interest = ["elephant", "corn doll", "flower doll"]  # whatever list you like
+prompt   = Prompt(objects_of_interest).text  # build prompt
+
+print(model.query(image, prompt)["answer"])
