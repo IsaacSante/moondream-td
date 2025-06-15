@@ -9,14 +9,14 @@ model = AutoModelForCausalLM.from_pretrained(
     device_map={"": "mps"}       # Apple-GPU
 )
 
-image = Image.open("test.jpg")
+image = Image.open("current_frame.jpg")
 
 # setup
 objects_of_interest = ["elephant", "corn doll", "flower doll"]  # whatever list you like
 prompt   = Prompt(objects_of_interest).text  # build prompt
 percepts = Percepts(objects_of_interest) # validation in case model returns some bs
 
-# model query 
+# model query
 model_answer = model.query(image, prompt)["answer"]
 percept_of_interest = percepts.validate_percept(model_answer)
 print(percept_of_interest)

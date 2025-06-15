@@ -1,10 +1,10 @@
 config.json
 venv
 .idea
-test.jpg
+current_frame.jpeg
 __pycache__/
 *.py[cod]
-
+Backup
 venv/
 .venv/
 env/
