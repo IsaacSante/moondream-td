@@ -2,3 +2,12 @@ config.json
 venv
 .idea
 test.jpg
+__pycache__/
+*.py[cod]
+
+venv/
+.venv/
+env/
+ENV/
+
+.DS_Store
