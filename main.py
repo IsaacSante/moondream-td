@@ -4,6 +4,7 @@ from utils.prompt import Prompt
 from utils.percepts import Percepts
 import cv2
 import time
+import requests
 
 model = AutoModelForCausalLM.from_pretrained(
     "vikhyatk/moondream2",
@@ -12,7 +13,10 @@ model = AutoModelForCausalLM.from_pretrained(
     device_map={"": "mps"},
 )
 
-objects_of_interest = ["elephant", "corn head doll", "pigeon"]
+TD_ENDPOINT = "http://127.0.0.1:9980/percept"   # Web Server DAT URL
+TIMEOUT     = 1.0                               # seconds
+
+objects_of_interest = ["bear", "car"]
 prompt   = Prompt(objects_of_interest).text
 percepts = Percepts(objects_of_interest)
 
@@ -42,5 +46,11 @@ try:
 
         elapsed = time.perf_counter() - start
         print(f"{res}  |  {elapsed:.3f}s")
+
+        payload = {"ts": time.time(), "percept": res}
+        try:
+            requests.post(TD_ENDPOINT, json=payload, timeout=TIMEOUT)
+        except requests.RequestException as e:
+            print(f"[TD POST] {e}")
 finally:
     cap.release()
