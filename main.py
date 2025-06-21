@@ -16,7 +16,7 @@ model = AutoModelForCausalLM.from_pretrained(
 TD_ENDPOINT = "http://127.0.0.1:9980/percept"   # Web Server DAT URL
 TIMEOUT     = 1.0                               # seconds
 
-objects_of_interest = ["pigeon", "elephant"]
+objects_of_interest = ["dragon", "white book"]
 prompt   = Prompt(objects_of_interest).text
 percepts = Percepts(objects_of_interest)
 
@@ -40,14 +40,21 @@ try:
         frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
         pil_img  = Image.fromarray(frame_rgb)
 
-        res = percepts.validate_percept(
-            model.query(pil_img, prompt, stream=False)["answer"]
-        )
+        raw_response = model.query(pil_img, prompt, stream=False)["answer"]
+        res = percepts.validate_percept(raw_response)
 
         elapsed = time.perf_counter() - start
-        print(f"{res}  |  {elapsed:.3f}s")
 
-        payload = {"ts": time.time(), "percept": res}
+        if res:
+            if res['confidence'] is not None:
+                print(f"Detected: {res['object']} ({res['confidence']}%)  |  {elapsed:.3f}s")
+            else:
+                print(f"Detected: {res['object']}  |  {elapsed:.3f}s")
+            payload = {"percept": res['object'], "confidence": res.get('confidence')}
+        else:
+            print(f"No object detected  |  {elapsed:.3f}s")
+            payload = {"percept": None}
+
         try:
             requests.post(TD_ENDPOINT, json=payload, timeout=TIMEOUT)
         except requests.RequestException as e:
