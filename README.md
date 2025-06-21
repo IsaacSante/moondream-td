@@ -1,6 +1,8 @@
-# moondream-td
+# Moondream-td
 Realtime object detection with no data training using moondream vlm, then pipe the data into TouchDesigner.
 Requires python and Touchdesigner.
+
+
 A good laptop or desktop to get low latency. (Im using a 2020 M1 MacBook Pro)
 
 # How to run
