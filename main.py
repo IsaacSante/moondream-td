@@ -16,7 +16,7 @@ model = AutoModelForCausalLM.from_pretrained(
 TD_ENDPOINT = "http://127.0.0.1:9980/percept"   # Web Server DAT URL
 TIMEOUT     = 1.0                               # seconds
 
-objects_of_interest = ["dragon", "white book"]
+objects_of_interest = ["dragon", "white book", "cup"]
 prompt   = Prompt(objects_of_interest).text
 percepts = Percepts(objects_of_interest)
 
