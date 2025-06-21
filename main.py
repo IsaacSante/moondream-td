@@ -1,63 +1,94 @@
+# main.py  – one *separate* Moondream model per object of interest
+#
+# • Each object gets its own model instance (no state clashes).
+# • All detections run in parallel in a ThreadPool.
+# • Points are over-laid live; press **Q** to quit.
+
+from concurrent.futures import ThreadPoolExecutor
 from transformers import AutoModelForCausalLM
 from PIL import Image
-from utils.prompt import Prompt
-from utils.percepts import Percepts
-import cv2
-import time
-import requests
+import cv2, time, itertools
 
-model = AutoModelForCausalLM.from_pretrained(
-    "vikhyatk/moondream2",
-    revision="2025-04-14",
-    trust_remote_code=True,
-    device_map={"": "mps"},
-)
+# ------------------------------------------------------------------
+objects_of_interest = ["dragon", "mug", "notebook"]
 
-TD_ENDPOINT = "http://127.0.0.1:9980/percept"   # Web Server DAT URL
-TIMEOUT     = 1.0                               # seconds
+# auto-assign visually distinct BGR colors
+COLOR_CYCLE = itertools.cycle([
+    (255,   0,   0),  # blue-ish
+    (  0, 255,   0),  # green-ish
+    (  0,   0, 255),  # red-ish
+    (255, 255,   0),  # cyan
+    (255,   0, 255),  # magenta
+    (  0, 255, 255),  # yellow
+])
+COLORS = {obj: next(COLOR_CYCLE) for obj in objects_of_interest}
+# ------------------------------------------------------------------
 
-objects_of_interest = ["dragon", "white book", "cup"]
-prompt   = Prompt(objects_of_interest).text
-percepts = Percepts(objects_of_interest)
+# ---- one model per object ------------------------------------------------
+MODELS = {
+    obj: AutoModelForCausalLM.from_pretrained(
+        "vikhyatk/moondream2",
+        revision="2025-04-14",
+        trust_remote_code=True,
+        device_map={"": "mps"},   # Apple-Silicon GPU
+    )
+    for obj in objects_of_interest
+}
+# -------------------------------------------------------------------------
 
-cap_num = 0
-cap = cv2.VideoCapture(cap_num)
+def locate(obj_name: str, pil_img: Image.Image):
+    mdl = MODELS[obj_name]
+    # encode + point with this *specific* model
+    encoded = mdl.encode_image(pil_img)
+    pts     = mdl.point(encoded, obj_name)["points"]
+    return obj_name, [(p["x"], p["y"]) for p in pts]
+
+cap = cv2.VideoCapture(0)
 if not cap.isOpened():
     raise RuntimeError("Cannot open webcam")
 
+MAX_WORKERS = len(objects_of_interest)
+
 try:
     while True:
-        start = time.perf_counter()
+        t0 = time.perf_counter()
 
-        ok, frame_bgr = cap.read()
+        ok, frame = cap.read()
         if not ok:
             continue
 
-        frame_bgr = cv2.resize(frame_bgr, (0, 0), fx=min(1, 192 / min(frame_bgr.shape[:2])),
-                               fy=min(1, 192 / min(frame_bgr.shape[:2])))
+        # Resize so the shorter side ≤ 192 px (quick speed-up)
+        scale = min(1, 192 / min(frame.shape[:2]))
+        if scale < 1:
+            frame = cv2.resize(frame, (0, 0), fx=scale, fy=scale)
 
+        pil_img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
 
-        frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
-        pil_img  = Image.fromarray(frame_rgb)
+        # -------- run all detections in parallel -------------------------
+        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
+            results = dict(pool.map(
+                lambda o: locate(o, pil_img),
+                objects_of_interest
+            ))
+        # ----------------------------------------------------------------
 
-        raw_response = model.query(pil_img, prompt, stream=False)["answer"]
-        res = percepts.validate_percept(raw_response)
+        # -------- overlay points ----------------------------------------
+        for obj, pts in results.items():
+            color = COLORS[obj]
+            for x_norm, y_norm in pts[:10]:       # show up to 10 per object
+                px = int(x_norm * frame.shape[1])
+                py = int(y_norm * frame.shape[0])
+                cv2.circle(frame, (px, py), 6, color, thickness=-1)
+                cv2.putText(frame, obj, (px + 8, py - 8),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1, cv2.LINE_AA)
+        # ----------------------------------------------------------------
 
-        elapsed = time.perf_counter() - start
+        print(f"{len(results)} objects processed in {time.perf_counter() - t0:.3f}s")
 
-        if res:
-            if res['confidence'] is not None:
-                print(f"Detected: {res['object']} ({res['confidence']}%)  |  {elapsed:.3f}s")
-            else:
-                print(f"Detected: {res['object']}  |  {elapsed:.3f}s")
-            payload = {"percept": res['object'], "confidence": res.get('confidence')}
-        else:
-            print(f"No object detected  |  {elapsed:.3f}s")
-            payload = {"percept": None}
+        cv2.imshow("Moondream points – press Q to quit", frame)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
 
-        try:
-            requests.post(TD_ENDPOINT, json=payload, timeout=TIMEOUT)
-        except requests.RequestException as e:
-            print(f"[TD POST] {e}")
 finally:
     cap.release()
+    cv2.destroyAllWindows()
