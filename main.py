@@ -1,70 +1,55 @@
 #!/usr/bin/env python3
 """
-Stream webcam frames to a remote Moondream-powered detector
-and overlay the returned (x, y) points in real-time.
+Client – capture webcam, send frame, draw returned points.
+Press Q to quit.
 """
 
 import base64
-import time
-from io import BytesIO
-
 import cv2
-import numpy as np  # only used if you need to convert colour spaces
 import requests
 
-REMOTE_SERVER = "http://10.0.30.81:5001/infer"       # 👈  change if the server’s IP/port moves
-JPEG_QUALITY  = 90                                   # 60-95 is a good trade-off
+REMOTE_SERVER = "http://10.0.30.81:5001/infer"
+JPEG_QUALITY  = 90
+TIMEOUT_S     = 60            # allow all three models time to finish
+WEBCAM_IDX    = 0
 
-# ----------------------------------------------------------------------------- #
-cap = cv2.VideoCapture(0)  
+# --------------------------------------------------------------------------- #
+cap = cv2.VideoCapture(WEBCAM_IDX, cv2.CAP_AVFOUNDATION)
 if not cap.isOpened():
     raise RuntimeError("Cannot open webcam")
 
 try:
     while True:
-        ok, frame_bgr = cap.read()
+        ok, frame = cap.read()
         if not ok:
-            continue           # drop the frame and grab another one
-
-        # Encode as JPEG (¼–¹⁰ the size of PNG, decodes faster too)
-        success, jpeg_buf = cv2.imencode(
-            ".jpg",
-            frame_bgr,
-            [int(cv2.IMWRITE_JPEG_QUALITY), JPEG_QUALITY],
-        )
-        if not success:
-            print("[WARN] JPEG encode failed")
             continue
 
-        image_b64 = base64.b64encode(jpeg_buf).decode()   # pure base-64, no data-URI header
+        ok, buf = cv2.imencode(".jpg", frame,
+                               [int(cv2.IMWRITE_JPEG_QUALITY), JPEG_QUALITY])
+        if not ok:
+            continue
 
-        # POST to the inference server
+        payload = {"image": base64.b64encode(buf).decode()}
         try:
-            r = requests.post(
-                REMOTE_SERVER,
-                json={"image": image_b64},
-                timeout=5,
-            )
+            r = requests.post(REMOTE_SERVER, json=payload, timeout=TIMEOUT_S)
             r.raise_for_status()
             result = r.json()
-            print("[DEBUG] from server →", result)  
+            print(result)
         except Exception as e:
-            print(f"[ERROR] inference request failed: {e}")
+            print("[ERROR] inference request failed:", e)
             result = {"objects": {}}
 
-        # Draw the returned points
-        display = frame_bgr.copy()
-        h, w = display.shape[:2]
-
+        # draw
+        disp = frame.copy()
+        h, w = disp.shape[:2]
         for obj, pts in result.get("objects", {}).items():
             for p in pts:
-                x = int(p["x"] * w)
-                y = int(p["y"] * h)
-                cv2.circle(display, (x, y), 5, (0, 255, 0), -1)
-                cv2.putText(display, obj, (x + 8, y - 8),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+                x, y = int(p["x"] * w), int(p["y"] * h)
+                cv2.circle(disp, (x, y), 6, (0, 0, 255), -1)
+                cv2.putText(disp, obj, (x + 8, y - 8),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
 
-        cv2.imshow("Detection", display)
+        cv2.imshow("Moondream multi-model detection", disp)
         if cv2.waitKey(1) & 0xFF == ord("q"):
             break
 
