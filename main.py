@@ -32,6 +32,7 @@ try:
         try:
             response = requests.post(REMOTE_SERVER, files={"image": buf}, timeout=3)
             result = response.json()
+            print(result)
         except Exception as e:
             print(f"[ERROR] Failed to get inference result: {e}")
             result = {"object": None}
