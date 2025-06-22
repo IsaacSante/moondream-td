@@ -32,9 +32,9 @@ def infer():
     raw_response = model.query(image, prompt, stream=False)["answer"]
     print(prompt)
     print(raw_response)
-    res = percepts.validate_percept(raw_response)
+    # res = percepts.validate_percept(raw_response)
 
-    return jsonify(res or {"object": None, "confidence": None})
+    return jsonify(raw_response)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5001)
