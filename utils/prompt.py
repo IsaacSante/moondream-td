@@ -7,4 +7,4 @@ class Prompt:
     @property
     def text(self) -> str:
         objects_part = " or ".join(self._objects)
-        return f"Is a person holding something on the table? Say yes or no."
+        return f"Is a person grabbing in the palm of their hand? Say yes or no."
