@@ -7,4 +7,4 @@ class Prompt:
     @property
     def text(self) -> str:
         objects_part = " or ".join(self._objects)
-        return f"Is the person holding {objects_part}? If yes, respond with the object name and confidence percentage (0-100). If no, respond with 'none'."
+        return f"Is the person holding the {objects_part}? If they hold any of the objects, respond with the object name . If not, respond with 'none'."
