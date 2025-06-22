@@ -31,22 +31,45 @@ def get_points_for_object(image, obj):
 
 @app.route("/infer", methods=["POST"])
 def infer():
-    data = request.get_json()
-    image_data_uri = data["image"]
-    image_base64 = image_data_uri.split(",")[1]
-    image = Image.open(BytesIO(base64.b64decode(image_base64)))
-    
-    # Parallel calls for each object
-    results = {}
-    with concurrent.futures.ThreadPoolExecutor(max_workers=len(objects_of_interest)) as executor:
-        futures = [executor.submit(get_points_for_object, image, obj) for obj in objects_of_interest]
+    try:
+        data = request.get_json()
+        if not data or "image" not in data:
+            return jsonify({"error": "No image provided"}), 400
+            
+        image_data_uri = data["image"]
+        # Remove data URI prefix if present
+        if "," in image_data_uri:
+            image_base64 = image_data_uri.split(",")[1]
+        else:
+            image_base64 = image_data_uri
+            
+        # Decode base64 to bytes
+        image_bytes = base64.b64decode(image_base64)
         
-        for future in concurrent.futures.as_completed(futures):
-            obj_name, points = future.result()
-            if points:
-                results[obj_name] = points
-    
-    return jsonify({"objects": results})
+        # Open image with PIL
+        image = Image.open(BytesIO(image_bytes))
+        
+        # Convert RGBA to RGB if needed
+        if image.mode == 'RGBA':
+            background = Image.new('RGB', image.size, (255, 255, 255))
+            background.paste(image, mask=image.split()[3])
+            image = background
+        
+        # Parallel calls for each object
+        results = {}
+        with concurrent.futures.ThreadPoolExecutor(max_workers=len(objects_of_interest)) as executor:
+            futures = [executor.submit(get_points_for_object, image, obj) for obj in objects_of_interest]
+            
+            for future in concurrent.futures.as_completed(futures):
+                obj_name, points = future.result()
+                if points:
+                    results[obj_name] = points
+        
+        return jsonify({"objects": results})
+        
+    except Exception as e:
+        print(f"Error in /infer: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5001)
