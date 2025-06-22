@@ -6,7 +6,7 @@ import requests
 from io import BytesIO
 
 TD_ENDPOINT = "http://127.0.0.1:9980/percept"
-REMOTE_SERVER = "http://192.168.0.13:5001/infer"
+REMOTE_SERVER = "http://10.0.30.81:5001/infer"
 TIMEOUT = 1.0
 
 cap = cv2.VideoCapture(0)
