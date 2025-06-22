@@ -38,15 +38,6 @@ try:
             result = {"object": None}
 
         elapsed = time.perf_counter() - start
-        if result and result.get("object"):
-            print(f"Detected: {result['object']} ({result.get('confidence')}%) | {elapsed:.3f}s")
-        else:
-            print(f"No object detected | {elapsed:.3f}s")
-
-        # try:
-        #     requests.post(TD_ENDPOINT, json={"percept": result["object"], "confidence": result.get("confidence")}, timeout=TIMEOUT)
-        # except Exception as e:
-        #     print(f"[TD POST] {e}")
 
 finally:
     cap.release()
