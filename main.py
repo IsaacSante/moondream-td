@@ -1,13 +1,11 @@
-# main.py (Mac side)
 from PIL import Image
 import cv2
 import time
 import requests
 from io import BytesIO
+import base64
 
-TD_ENDPOINT = "http://127.0.0.1:9980/percept"
 REMOTE_SERVER = "http://10.0.30.81:5001/infer"
-TIMEOUT = 1.0
 
 cap = cv2.VideoCapture(0)
 if not cap.isOpened():
@@ -20,32 +18,41 @@ try:
         if not ok:
             continue
 
-        frame_bgr = cv2.resize(frame_bgr, (0, 0), fx=min(1, 192 / min(frame_bgr.shape[:2])),
-                               fy=min(1, 192 / min(frame_bgr.shape[:2])))
+        # Send full image with no compression
         frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
         pil_img = Image.fromarray(frame_rgb)
-
+        
         buf = BytesIO()
-        pil_img.save(buf, format="JPEG")
+        pil_img.save(buf, format="PNG")
         buf.seek(0)
+        
+        # Convert to base64 for API
+        image_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
+        image_data_uri = f"data:image/png;base64,{image_base64}"
 
         try:
-            response = requests.post(REMOTE_SERVER, files={"image": buf}, timeout=3)
+            response = requests.post(REMOTE_SERVER, json={"image": image_data_uri}, timeout=5)
             result = response.json()
         except Exception as e:
             print(f"[ERROR] Failed to get inference result: {e}")
-            result = {"object": None}
+            result = {"objects": {}}
 
-        elapsed = time.perf_counter() - start
-        if result and result.get("object"):
-            print(f"Detected: {result['object']} ({result.get('confidence')}%) | {elapsed:.3f}s")
-        else:
-            print(f"No object detected | {elapsed:.3f}s")
-
-        # try:
-        #     requests.post(TD_ENDPOINT, json={"percept": result["object"], "confidence": result.get("confidence")}, timeout=TIMEOUT)
-        # except Exception as e:
-        #     print(f"[TD POST] {e}")
+        # Display image with points
+        display_frame = frame_bgr.copy()
+        
+        if result.get("objects"):
+            for obj_name, points in result["objects"].items():
+                for point in points:
+                    x = int(point["x"] * frame_bgr.shape[1])
+                    y = int(point["y"] * frame_bgr.shape[0])
+                    
+                    cv2.circle(display_frame, (x, y), 5, (0, 255, 0), -1)
+                    cv2.putText(display_frame, obj_name, (x + 10, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+        
+        cv2.imshow("Detection", display_frame)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
 
 finally:
     cap.release()
+    cv2.destroyAllWindows()
