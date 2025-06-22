@@ -42,10 +42,10 @@ try:
         else:
             print(f"No object detected | {elapsed:.3f}s")
 
-        try:
-            requests.post(TD_ENDPOINT, json={"percept": result["object"], "confidence": result.get("confidence")}, timeout=TIMEOUT)
-        except Exception as e:
-            print(f"[TD POST] {e}")
+        # try:
+        #     requests.post(TD_ENDPOINT, json={"percept": result["object"], "confidence": result.get("confidence")}, timeout=TIMEOUT)
+        # except Exception as e:
+        #     print(f"[TD POST] {e}")
 
 finally:
     cap.release()
