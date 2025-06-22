@@ -15,10 +15,12 @@ percepts = Percepts(objects_of_interest)
 
 model = AutoModelForCausalLM.from_pretrained(
     "vikhyatk/moondream2",
-    revision="2025-04-14",
+    revision="2025-06-21",
     trust_remote_code=True,
     device_map="cuda",  # uses GPU
 )
+
+print("running...")
 
 @app.route("/infer", methods=["POST"])
 def infer():
