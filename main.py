@@ -13,11 +13,10 @@ import numpy as np  # only used if you need to convert colour spaces
 import requests
 
 REMOTE_SERVER = "http://10.0.30.81:5001/infer"       # 👈  change if the server’s IP/port moves
-WEBCAM_INDEX  = 0                                    # built-in / first USB cam
 JPEG_QUALITY  = 90                                   # 60-95 is a good trade-off
 
 # ----------------------------------------------------------------------------- #
-cap = cv2.VideoCapture(WEBCAM_INDEX, cv2.CAP_DSHOW)   # CAP_DSHOW avoids long open on Windows
+cap = cv2.VideoCapture(0)  
 if not cap.isOpened():
     raise RuntimeError("Cannot open webcam")
 
@@ -48,6 +47,7 @@ try:
             )
             r.raise_for_status()
             result = r.json()
+            print("[DEBUG] from server →", result)  
         except Exception as e:
             print(f"[ERROR] inference request failed: {e}")
             result = {"objects": {}}
