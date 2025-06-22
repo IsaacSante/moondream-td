@@ -9,7 +9,7 @@ from utils.percepts import Percepts
 app = Flask(__name__)
 
 # Load model and setup
-objects_of_interest = ["dragon", "white book", "cup"]
+objects_of_interest = ["dragon", "notebook", "mug"]
 prompt = Prompt(objects_of_interest).text
 percepts = Percepts(objects_of_interest)
 
