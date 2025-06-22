@@ -30,6 +30,8 @@ def infer():
 
     image = Image.open(BytesIO(file.read()))
     raw_response = model.query(image, prompt, stream=False)["answer"]
+    print(prompt)
+    print(raw_response)
     res = percepts.validate_percept(raw_response)
 
     return jsonify(res or {"object": None, "confidence": None})
