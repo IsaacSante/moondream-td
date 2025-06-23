@@ -9,6 +9,24 @@ TD_ENDPOINT = "http://127.0.0.1:9980/percept"
 REMOTE_SERVER = "http://10.0.30.81:5001/infer"
 TIMEOUT = 1.0
 
+TRIGGERS = {
+    "Brush":      ["brush", "paint"],
+    "Dragon":     ["green", "toy"],
+    "Hourglass":  ["hour", "sand", "glass", "time"],
+    "Orange":     ["orange"],
+}
+
+def detect_object(text: str) -> str | None:
+    """
+    Return the object name whose trigger word appears in *text*.
+    If nothing matches, return None.
+    """
+    text_l = text.lower()
+    for obj, keywords in TRIGGERS.items():
+        if any(k in text_l for k in keywords):
+            return obj
+    return None
+
 cap = cv2.VideoCapture(0)
 if not cap.isOpened():
     raise RuntimeError("Cannot open webcam")
@@ -31,8 +49,11 @@ try:
 
         try:
             response = requests.post(REMOTE_SERVER, files={"image": buf}, timeout=3)
-            result = response.json()
-            print(result)
+            raw = response.json()          # adjust if your payload key is different
+            resp_text = raw if isinstance(raw, str) else raw.get("object", "")
+
+            found = detect_object(resp_text)
+            print(f"Found {found}" if found else "None")
         except Exception as e:
             print(f"[ERROR] Failed to get inference result: {e}")
             result = {"object": None}
