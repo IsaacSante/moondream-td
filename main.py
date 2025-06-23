@@ -53,7 +53,19 @@ try:
             resp_text = raw if isinstance(raw, str) else raw.get("object", "")
 
             found = detect_object(resp_text)
+            if found:
+                percept = found
+            else:
+                percept = None
             print(f"Found {found}" if found else "None")
+
+            payload = {"percept": percept}
+
+            try:
+                requests.post(TD_ENDPOINT, json=payload, timeout=TIMEOUT)
+            except requests.RequestException as e:
+                print(f"[TD POST] {e}")
+
         except Exception as e:
             print(f"[ERROR] Failed to get inference result: {e}")
             result = {"object": None}
