@@ -10,10 +10,10 @@ REMOTE_SERVER = "http://10.0.30.81:5001/infer"
 TIMEOUT = 1.0
 
 TRIGGERS = {
-    "Brush":      ["brush", "paint"],
+    "Frog":       ["frog"],
     "Dragon":     ["green", "toy"],
     "Hourglass":  ["hour", "sand", "glass", "time"],
-    "Orange":     ["orange"],
+    "Baby":       ["small"],
 }
 
 def detect_object(text: str) -> str | None:
