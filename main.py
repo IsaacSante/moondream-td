@@ -18,13 +18,38 @@ TRIGGERS = {
 
 def detect_object(text: str) -> str | None:
     """
-    Return the object name whose trigger word appears in *text*.
-    If nothing matches, return None.
+    Return the object name using priority-based detection with improved specificity.
     """
     text_l = text.lower()
-    for obj, keywords in TRIGGERS.items():
-        if any(k in text_l for k in keywords):
-            return obj
+
+    # HIGHEST PRIORITY - Specific object names (these override everything)
+    if "frog" in text_l:
+        return "Frog"
+
+    if "dinosaur" in text_l:
+        return "Dragon"
+
+    if any(word in text_l for word in ["hourglass", "hour", "sand", "glass", "time"]):
+        return "Hourglass"
+
+    # HIGH PRIORITY - Lego items are typically Baby figures
+    if "lego" in text_l:
+        return "Baby"
+
+    # MEDIUM PRIORITY - Human figures (small + figure/figurine, but not if it's a frog or dinosaur)
+    if "small" in text_l and ("figure" in text_l or "figurine" in text_l):
+        # Double-check it's not a frog or dinosaur that we missed
+        if "frog" not in text_l and "dinosaur" not in text_l:
+            return "Baby"
+
+    # LOWER PRIORITY - More specific Dragon triggers
+    if ("green" in text_l and "toy" in text_l) or "dragon" in text_l:
+        return "Dragon"
+
+    # FALLBACK - Generic small objects (if no other specific indicators)
+    if "small" in text_l and not any(word in text_l for word in ["bottle", "container", "cap"]):
+        return "Baby"
+
     return None
 
 cap = cv2.VideoCapture(0)
@@ -51,6 +76,7 @@ try:
             response = requests.post(REMOTE_SERVER, files={"image": buf}, timeout=3)
             raw = response.json()          # adjust if your payload key is different
             resp_text = raw if isinstance(raw, str) else raw.get("object", "")
+            print(resp_text)
 
             found = detect_object(resp_text)
             if found:
