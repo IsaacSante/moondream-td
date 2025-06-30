@@ -13,8 +13,9 @@ TRIGGERS = {
     "Frog":       ["frog"],
     "Dragon":     ["green", "toy"],
     "Hourglass":  ["hour", "sand", "glass", "time"],
-    "Baby":       ["small"],
+    "Perfume":    ["pink"],
 }
+
 
 def detect_object(text: str) -> str | None:
     """
@@ -32,25 +33,24 @@ def detect_object(text: str) -> str | None:
     if any(word in text_l for word in ["hourglass", "hour", "sand", "glass", "time"]):
         return "Hourglass"
 
-    # HIGH PRIORITY - Lego items are typically Baby figures
-    if "lego" in text_l:
-        return "Baby"
+    # HIGH PRIORITY - Perfume bottles and perfume-related items
+    if "perfume" in text_l or "bottle" in text_l:
+        return "Perfume"
 
-    # MEDIUM PRIORITY - Human figures (small + figure/figurine, but not if it's a frog or dinosaur)
-    if "small" in text_l and ("figure" in text_l or "figurine" in text_l):
-        # Double-check it's not a frog or dinosaur that we missed
-        if "frog" not in text_l and "dinosaur" not in text_l:
-            return "Baby"
+    # HIGH PRIORITY - Green figurines are Dragon (check BEFORE other detections)
+    if "green" in text_l and ("figure" in text_l or "figurine" in text_l):
+        return "Dragon"
+
+    # MEDIUM PRIORITY - Pink objects are Perfume
+    if "pink" in text_l:
+        return "Perfume"
 
     # LOWER PRIORITY - More specific Dragon triggers
     if ("green" in text_l and "toy" in text_l) or "dragon" in text_l:
         return "Dragon"
 
-    # FALLBACK - Generic small objects (if no other specific indicators)
-    if "small" in text_l and not any(word in text_l for word in ["bottle", "container", "cap"]):
-        return "Baby"
-
     return None
+
 
 cap = cv2.VideoCapture(0)
 if not cap.isOpened():
